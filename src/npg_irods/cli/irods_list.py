@@ -82,14 +82,15 @@ def _print_item_rows(writer, item, acl, avu, size, checksum):
         rows = []
         if not acl and not avu:
             rows.append([p, t, s, c, "", "", ""])
-        elif acl:
-            for ac in item.acl():
-                rows.append(
-                    [p, t, s, c, ACL_LABEL, f"{ac.user}#{ac.zone}", ac.perm.value]
-                )
-        elif avu:
-            for av in item.metadata():
-                rows.append([p, t, s, c, AVU_LABEL, av.attribute, av.value])
+        else:
+            if acl:
+                for ac in item.acl():
+                    rows.append(
+                        [p, t, s, c, ACL_LABEL, f"{ac.user}#{ac.zone}", ac.perm.value]
+                    )
+            if avu:
+                for av in item.metadata():
+                    rows.append([p, t, s, c, AVU_LABEL, av.attribute, av.value])
 
         writer.writerows(rows)
     except Exception as e:
