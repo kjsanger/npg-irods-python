@@ -42,7 +42,7 @@ class TestPublishDirectory:
         mock_publish_directory.return_value = (2, 1, 0)
 
         # Act
-        with caplog.at_level("DEBUG", "publish_directory"):
+        with caplog.at_level("DEBUG"):
             self._main(["directory", "/collection"])
 
         # Assert
