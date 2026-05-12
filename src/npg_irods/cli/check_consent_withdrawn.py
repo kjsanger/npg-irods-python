@@ -56,39 +56,44 @@ If any of the paths fail their check, the exit code will be non-zero and an erro
 message summarising the results will be sent to STDERR.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_io_arguments(parser)
-add_logging_arguments(parser)
-parser.add_argument(
-    "--print-pass",
-    help="Print to output those paths that pass the check.",
-    action="store_true",
-)
-parser.add_argument(
-    "--print-fail",
-    help="Print to output those paths that fail the check.",
-    action="store_true",
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
 
-
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_io_arguments(parser)
+    add_logging_arguments(parser)
+    parser.add_argument(
+        "--print-pass",
+        help="Print to output those paths that pass the check.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--print-fail",
+        help="Print to output those paths that fail the check.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     input_path = sanitise_path(args.input)
     output_path = sanitise_path(args.output)
 
@@ -103,7 +108,7 @@ def main():
             )
 
             if num_errors:
-                log.error(
+                logger().error(
                     "Some checks did not pass",
                     num_processed=num_processed,
                     num_passed=num_passed,
@@ -111,7 +116,7 @@ def main():
                 )
                 sys.exit(1)
 
-            log.info(
+            logger().info(
                 "All checks passed",
                 num_processed=num_processed,
                 num_passed=num_passed,

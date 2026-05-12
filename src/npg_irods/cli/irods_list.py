@@ -59,7 +59,7 @@ AVU_LABEL = "avu"
 
 
 def logger():
-    return structlog.get_logger("main")
+    return structlog.get_logger(__name__)
 
 
 def _print_item_rows(writer, item, acl, avu, size, checksum):

@@ -108,19 +108,18 @@ parser.add_argument(
     "--version", help="Print the version and exit.", action="version", version=version()
 )
 
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
-
 
 def main():
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+    log = structlog.get_logger(__name__)
 
     try:
         if args.input_file is None and args.category is not None:
