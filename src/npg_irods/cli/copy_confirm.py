@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2022, 2023 Genome Research Ltd. All rights reserved.
+# Copyright © 2022, 2023, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,60 +46,67 @@ their valid replicas. If this is not the case, the copy operation raise an error
 abort further copying until the problem is resolved. 
 """
 
-parser = argparse.ArgumentParser(
-    description=description,
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-)
-add_logging_arguments(parser)
-parser.add_argument(
-    "source",
-    help="Collection or data object path to copy from. Must be an absolute path.",
-    nargs="?",
-    type=rods_path,
-)
-parser.add_argument(
-    "destination",
-    help="Collection or data object path to copy to. Must be an absolute path.",
-    nargs="?",
-)
-parser.add_argument(
-    "--copy-metadata",
-    help="Copy the AVUs (metadata) of each data object and collection.",
-    action="store_true",
-)
-parser.add_argument(
-    "--copy-permissions",
-    help="Copy the ACL (access control list, permissions) of each data object "
-    "and collection.",
-    action="store_true",
-)
-parser.add_argument(
-    "--recurse",
-    help="Recurse into collections when copying.",
-    action="store_true",
-)
-parser.add_argument(
-    "--skip-existing",
-    help="Skip existing data objects and collections when copying.",
-    action="store_true",
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
 
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+
+    parser = argparse.ArgumentParser(
+        description=description,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    add_logging_arguments(parser)
+    parser.add_argument(
+        "source",
+        help="Collection or data object path to copy from. Must be an absolute path.",
+        nargs="?",
+        type=rods_path,
+    )
+    parser.add_argument(
+        "destination",
+        help="Collection or data object path to copy to. Must be an absolute path.",
+        nargs="?",
+    )
+    parser.add_argument(
+        "--copy-metadata",
+        help="Copy the AVUs (metadata) of each data object and collection.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--copy-permissions",
+        help="Copy the ACL (access control list, permissions) of each data object "
+        "and collection.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--recurse",
+        help="Recurse into collections when copying.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--skip-existing",
+        help="Skip existing data objects and collections when copying.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     try:
         num_processed, num_copied = copy(
             args.source,
@@ -110,18 +117,20 @@ def main():
             exist_ok=args.skip_existing,
         )
 
-        log.info(
+        logger().info(
             f"Copied {args.source} to {args.destination}",
             num_processed=num_processed,
             num_copied=num_copied,
         )
 
     except ChecksumError as ce:
-        log.error(ce.message, path=ce.path, expected=ce.expected, observed=ce.observed)
+        logger().error(
+            ce.message, path=ce.path, expected=ce.expected, observed=ce.observed
+        )
         sys.exit(1)
     except RodsError as re:
-        log.error(re.message, code=re.code)
+        logger().error(re.message, code=re.code)
         sys.exit(1)
     except Exception as e:
-        log.error(e)
+        logger().error(e)
         sys.exit(1)

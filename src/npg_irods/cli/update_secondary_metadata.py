@@ -58,64 +58,65 @@ error message summarising the results will be sent to STDERR.
 """
 
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
-add_io_arguments(parser)
-add_db_config_arguments(parser)
-parser.add_argument(
-    "--print-update",
-    help="Print to output those paths that were updated.",
-    action="store_true",
-)
-parser.add_argument(
-    "--print-fail",
-    help="Print to output those paths that require updating, where the update "
-    "failed. Defaults to False.",
-    action="store_true",
-)
-parser.add_argument(
-    "-c",
-    "--clients",
-    help="Number of baton clients to use. Defaults to 4.",
-    type=int,
-    default=4,
-)
-parser.add_argument(
-    "-t",
-    "--threads",
-    help="Number of threads to use. Defaults to 4.",
-    type=int,
-    default=4,
-)
-parser.add_argument(
-    "--version",
-    help="Print the version and exit.",
-    action="version",
-    version=version(),
-)
-parser.add_argument(
-    "--zone",
-    help="Specify a federated iRODS zone in which to find data objects and/or "
-    "collections to update. This is not required if the target paths "
-    "are on the local zone.",
-    type=str,
-)
-
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+    add_io_arguments(parser)
+    add_db_config_arguments(parser)
+    parser.add_argument(
+        "--print-update",
+        help="Print to output those paths that were updated.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--print-fail",
+        help="Print to output those paths that require updating, where the update "
+        "failed. Defaults to False.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-c",
+        "--clients",
+        help="Number of baton clients to use. Defaults to 4.",
+        type=int,
+        default=4,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        help="Number of threads to use. Defaults to 4.",
+        type=int,
+        default=4,
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+    parser.add_argument(
+        "--zone",
+        help="Specify a federated iRODS zone in which to find data objects and/or "
+        "collections to update. This is not required if the target paths "
+        "are on the local zone.",
+        type=str,
+    )
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     dbconfig = IniData(db.Config).from_file(args.db_config, "mlwh_ro")
     engine = sqlalchemy.create_engine(
         dbconfig.url, pool_pre_ping=True, pool_recycle=3600
@@ -138,7 +139,7 @@ def main():
             )
 
             if num_errors:
-                log.error(
+                logger().error(
                     "Update failed",
                     num_processed=num_processed,
                     num_updated=num_updated,
@@ -151,7 +152,7 @@ def main():
                 if num_updated
                 else "No updates were required"
             )
-            log.info(
+            logger().info(
                 msg,
                 num_processed=num_processed,
                 num_updated=num_updated,

@@ -34,29 +34,36 @@ The output follows GNU coreutils md5sum format. Checksum files (*.md5) are
 ignored. Files with existing checksums are skipped.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
 
-parser.add_argument(
-    "--directory",
-    help="The directory to checksum.",
-    type=str,
-)
-
-parser.add_argument(
-    "--md5sums-path",
-    help="The file to write checksums to.",
-    type=str,
-)
-
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+
+    parser.add_argument(
+        "--directory",
+        help="The directory to checksum.",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--md5sums-path",
+        help="The file to write checksums to.",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
     args = parser.parse_args()
     configure_structlog(
         config_file=args.log_config,
@@ -66,7 +73,6 @@ def main():
         json=args.log_json,
     )
     add_appinfo_structlog_processor()
-    log = structlog.get_logger("main")
 
     path = Path(args.directory)
     md5sums_path = Path(args.md5sums_path)
@@ -76,7 +82,7 @@ def main():
         md5sums_path,
     )
 
-    log.info(
+    logger().info(
         "Checksummed path successfully",
         num_files=num_files,
         num_checksummed=num_checksummed,

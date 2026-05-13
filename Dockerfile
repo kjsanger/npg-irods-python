@@ -117,4 +117,4 @@ USER appuser
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
 
-CMD ["check-checksums", "--version"]
+CMD ["list-commands"]

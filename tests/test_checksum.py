@@ -40,7 +40,7 @@ class TestChecksumScript:
         mock_checksum_directory.return_value = (2, 1)
 
         # Act
-        with caplog.at_level("DEBUG", "main"):
+        with caplog.at_level("DEBUG"):
             self._main(["--directory", "directory", "--md5sums-path", "md5sums_path"])
 
         # Assert

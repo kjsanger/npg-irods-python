@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2022, 2023, 2024 Genome Research Ltd. All rights reserved.
+# Copyright © 2022, 2023, 2024, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,52 +52,58 @@ If any of the paths could not be repaired, the exit code will be non-zero and an
 error message summarising the results will be sent to STDERR.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_io_arguments(parser)
-add_logging_arguments(parser)
-parser.add_argument(
-    "--print-repair",
-    help="Print to output those paths that were repaired.",
-    action="store_true",
-)
-parser.add_argument(
-    "--print-fail",
-    help="Print to output those paths that require repair, where the repair failed.",
-    action="store_true",
-)
-parser.add_argument(
-    "-c",
-    "--clients",
-    help="Number of baton clients to use. Defaults to 4.",
-    type=int,
-    default=4,
-)
-parser.add_argument(
-    "-t",
-    "--threads",
-    help="Number of threads to use. Defaults to 4.",
-    type=int,
-    default=4,
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
 
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_io_arguments(parser)
+    add_logging_arguments(parser)
+    parser.add_argument(
+        "--print-repair",
+        help="Print to output those paths that were repaired.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--print-fail",
+        help="Print to output those paths that require repair, where the repair failed.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-c",
+        "--clients",
+        help="Number of baton clients to use. Defaults to 4.",
+        type=int,
+        default=4,
+    )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        help="Number of threads to use. Defaults to 4.",
+        type=int,
+        default=4,
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     input_path = sanitise_path(args.input)
     output_path = sanitise_path(args.output)
 
@@ -114,7 +120,7 @@ def main():
             )
 
             if num_errors:
-                log.error(
+                logger().error(
                     "Some repairs failed",
                     num_processed=num_processed,
                     num_repaired=num_repaired,
@@ -127,7 +133,7 @@ def main():
                 if num_repaired
                 else "No paths required repair"
             )
-            log.info(
+            logger().info(
                 msg,
                 num_processed=num_processed,
                 num_repaired=num_repaired,

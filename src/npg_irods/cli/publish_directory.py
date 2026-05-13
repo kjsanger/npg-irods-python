@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2025 Genome Research Ltd. All rights reserved.
+# Copyright © 2025, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# @author Keith James <kdj@sanger.ac.uk>
 
 import argparse
 import json
@@ -40,136 +39,8 @@ structure.
 """
 
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
-
-parser.add_argument(
-    "directory",
-    help="The local directory to publish to iRODS.",
-    type=str,
-)
-parser.add_argument(
-    "collection",
-    help="The iRODS collection to publish the local directory to.",
-    type=str,
-)
-parser.add_argument(
-    "--exclude",
-    help="Exclude paths matching the given regular expression. May be used "
-    "multiple times to filter on additional regular expressions. Exclude "
-    "regular expressions are applied after any include regular expressions. "
-    "Paths will be absolute or relative depending on whether directory is an "
-    "absolute or relative path. "
-    "Optional, defaults to none.",
-    type=str,
-    action="append",
-    default=[],
-)
-
-parser.add_argument(
-    "--include",
-    help="Include paths matching the given regular expression. Only matching "
-    "paths will be published, all others will be ignored. If more than one "
-    "regex is supplied, the matches for all of them are aggregated. "
-    "Paths will be absolute or relative depending on whether directory is an "
-    "absolute or relative path. "
-    "Optional, defaults to all.",
-    type=str,
-    action="append",
-    default=[],
-)
-
-
-# Provide convenience method for common use case of --exclude.
-# We often need to apply permissions and metadata to the files in root of a run
-# differently from sample folders.
-# We had several bugs in ultimagen_publish_to_irods.py from rnd_platforms
-# due to issues filtering to just top level files using approach of excluding
-# sample folders with a regular expression.
-parser.add_argument(
-    "--include-top-level-files",
-    help="Include top level files. Composes with other filters.",
-    action="store_true",
-)
-
-# Provide convenience method for common use case of --exclude.
-parser.add_argument(
-    "--exclude-md5",
-    help="Exclude md5 files. Composes with other filters.",
-    action="store_true",
-)
-
-ff_group = parser.add_mutually_exclusive_group(required=False)
-ff_group.add_argument(
-    "--fill",
-    help="Fill missing data objects and those with mismatched checksums. "
-    "Incompatible with --force.",
-    action="store_true",
-)
-ff_group.add_argument(
-    "--force",
-    help="Force the update of existing data objects. Incompatible with --fill.",
-    action="store_true",
-)
-
-parser.add_argument(
-    "--group",
-    help="Add read access for the given iRODS group. "
-    "Optional, defaults to none. "
-    "May be used multiple times to add read permissions for multiple groups. "
-    "For new items, adds read access in addition to any inherited permissions. "
-    "For existing items, in addition to existing permissions. "
-    "Unless explicitly specified, public permissions are removed. "  # See ADR 1
-    "Zone may be specified with #zone suffix, otherwise inferred from collection.",
-    type=str,
-    action="append",
-    default=[],
-)
-parser.add_argument(
-    "--metadata-file",
-    help="Path to a JSON file containing metadata to add to the published "
-    "root collection. The JSON must describe the metadata in baton syntax "
-    '(an array of AVUs): E.g. [{"attribute": "attr1", "value": "val1"}]. '
-    "Optional, defaults to none.",
-    type=argparse.FileType("r", encoding="UTF-8"),
-    default=None,
-)
-checksums_group = parser.add_mutually_exclusive_group(required=False)
-checksums_group.add_argument(
-    "--use-checksum-files",
-    help="Expect checksum files to be present alongside the data files with "
-    "the same name as the data file but with an additional '.md5' extension"
-    "e.g. 'data.txt' and 'data.txt.md5'. Each checksum file should contain only "
-    "the single MD5 checksum of the corresponding data file. This avoids having "
-    "to calculate the checksums during the publish process. If this option is "
-    "enabled and a checksum file cannot be read, an error will be raised for "
-    "that file. Optional, defaults to false.",
-    action="store_true",
-)
-checksums_group.add_argument(
-    "--use-checksums-file",
-    help="Expect checksums to be present in a checksums file at path specified "
-    "following GNU coreutils md5sum format. This avoids having to calculate the "
-    "checksums during the publish process. If this option is enabled and a "
-    "checksum is missing or stale, an error will be raised for that file. "
-    "Optional, defaults to none.",
-    type=str,
-    default=None,
-)
-parser.add_argument(
-    "--num-clients",
-    help="Number of iRODS clients to use for the operation, maximum 24. "
-    "Optional, defaults to 4.",
-    type=integer_in_range(1, 24),
-    default=4,
-)
-
-
-def _parse_group(group: str) -> tuple[str, str | None]:
-    name, zone = (group.split("#", maxsplit=1) + [None])[:2]
-    return name, zone
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def make_get_checksum(md5sums_path: Path) -> Callable[[Path | str], str]:
@@ -192,7 +63,138 @@ def make_get_checksum(md5sums_path: Path) -> Callable[[Path | str], str]:
     return get_checksum
 
 
+def _parse_group(group: str) -> tuple[str, str | None]:
+    name, zone = (group.split("#", maxsplit=1) + [None])[:2]
+    return name, zone
+
+
 def main():
+
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+
+    parser.add_argument(
+        "directory",
+        help="The local directory to publish to iRODS.",
+        type=str,
+    )
+    parser.add_argument(
+        "collection",
+        help="The iRODS collection to publish the local directory to.",
+        type=str,
+    )
+    parser.add_argument(
+        "--exclude",
+        help="Exclude paths matching the given regular expression. May be used "
+        "multiple times to filter on additional regular expressions. Exclude "
+        "regular expressions are applied after any include regular expressions. "
+        "Paths will be absolute or relative depending on whether directory is an "
+        "absolute or relative path. "
+        "Optional, defaults to none.",
+        type=str,
+        action="append",
+        default=[],
+    )
+
+    parser.add_argument(
+        "--include",
+        help="Include paths matching the given regular expression. Only matching "
+        "paths will be published, all others will be ignored. If more than one "
+        "regex is supplied, the matches for all of them are aggregated. "
+        "Paths will be absolute or relative depending on whether directory is an "
+        "absolute or relative path. "
+        "Optional, defaults to all.",
+        type=str,
+        action="append",
+        default=[],
+    )
+
+    # Provide a convenience method for the common use case of --exclude.
+    # We often need to apply permissions and metadata to the files in the root of a run
+    # differently from sample folders.
+    # We had several bugs in ultimagen_publish_to_irods.py from rnd_platforms
+    # due to issues filtering to just top level files using the approach of excluding
+    # sample folders with a regular expression.
+    parser.add_argument(
+        "--include-top-level-files",
+        help="Include top level files. Composes with other filters.",
+        action="store_true",
+    )
+
+    # Provide convenience method for common use case of --exclude.
+    parser.add_argument(
+        "--exclude-md5",
+        help="Exclude md5 files. Composes with other filters.",
+        action="store_true",
+    )
+
+    ff_group = parser.add_mutually_exclusive_group(required=False)
+    ff_group.add_argument(
+        "--fill",
+        help="Fill missing data objects and those with mismatched checksums. "
+        "Incompatible with --force.",
+        action="store_true",
+    )
+    ff_group.add_argument(
+        "--force",
+        help="Force the update of existing data objects. Incompatible with --fill.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--group",
+        help="Add read access for the given iRODS group. "
+        "Optional, defaults to none. "
+        "May be used multiple times to add read permissions for multiple groups. "
+        "For new items, adds read access in addition to any inherited permissions. "
+        "For existing items, in addition to existing permissions. "
+        "Unless explicitly specified, public permissions are removed. "  # See ADR 1
+        "Zone may be specified with #zone suffix, otherwise inferred from collection.",
+        type=str,
+        action="append",
+        default=[],
+    )
+    parser.add_argument(
+        "--metadata-file",
+        help="Path to a JSON file containing metadata to add to the published "
+        "root collection. The JSON must describe the metadata in baton syntax "
+        '(an array of AVUs): E.g. [{"attribute": "attr1", "value": "val1"}]. '
+        "Optional, defaults to none.",
+        type=argparse.FileType("r", encoding="UTF-8"),
+        default=None,
+    )
+    checksums_group = parser.add_mutually_exclusive_group(required=False)
+    checksums_group.add_argument(
+        "--use-checksum-files",
+        help="Expect checksum files to be present alongside the data files with "
+        "the same name as the data file but with an additional '.md5' extension"
+        "e.g. 'data.txt' and 'data.txt.md5'. Each checksum file should contain only "
+        "the single MD5 checksum of the corresponding data file. This avoids having "
+        "to calculate the checksums during the publish process. If this option is "
+        "enabled and a checksum file cannot be read, an error will be raised for "
+        "that file. Optional, defaults to false.",
+        action="store_true",
+    )
+    checksums_group.add_argument(
+        "--use-checksums-file",
+        help="Expect checksums to be present in a checksums file at path specified "
+        "following GNU coreutils md5sum format. This avoids having to calculate the "
+        "checksums during the publish process. If this option is enabled and a "
+        "checksum is missing or stale, an error will be raised for that file. "
+        "Optional, defaults to none.",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--num-clients",
+        help="Number of iRODS clients to use for the operation, maximum 24. "
+        "Optional, defaults to 4.",
+        type=integer_in_range(1, 24),
+        default=4,
+    )
+
     args = parser.parse_args()
     configure_structlog(
         config_file=args.log_config,
@@ -202,7 +204,6 @@ def main():
         json=args.log_json,
     )
     add_appinfo_structlog_processor()
-    log = structlog.get_logger("main")
 
     num_clients = args.num_clients
     inferred_zone = infer_zone(args.collection)
@@ -247,12 +248,12 @@ def main():
 
                 avus.append(AVU(attr, value, units))
         except Exception as e:
-            log.error(
+            logger().error(
                 "Failed to read JSON from metadata file", path=f.name, error=str(e)
             )
             raise e
 
-    log.info(
+    logger().info(
         "Publishing directory",
         src=args.directory,
         dest=args.collection,
@@ -283,7 +284,7 @@ def main():
         try:
             checksum_fn = make_get_checksum(Path(args.use_checksums_file))
         except Exception as e:
-            log.error(
+            logger().error(
                 "Failed to read checksums file",
                 path=args.use_checksums_file,
                 error=str(e),
@@ -306,7 +307,7 @@ def main():
     )
 
     if num_errors > 0:
-        log.error(
+        logger().error(
             "Processed some items with errors",
             num_items=num_items,
             num_processed=num_processed,
@@ -314,7 +315,7 @@ def main():
         )
         sys.exit(1)
 
-    log.info(
+    logger().info(
         "Processed all items successfully",
         num_items=num_items,
         num_processed=num_processed,

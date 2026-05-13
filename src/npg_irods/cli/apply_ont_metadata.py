@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2023, 2024 Genome Research Ltd. All rights reserved.
+# Copyright © 2023, 2024, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,36 +50,43 @@ The default window for detecting changes is the 14 days prior to the time when t
 script is run. This can be changed using the --begin-date and --end-date CLI options.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
-add_date_range_arguments(parser, begin_delta=14)
-add_db_config_arguments(parser)
-parser.add_argument(
-    "--zone",
-    help="Specify a federated iRODS zone in which to find "
-    "collections to update. This is not required if the target "
-    "collections are in the local zone.",
-    type=str,
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
 
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+    add_date_range_arguments(parser, begin_delta=14)
+    add_db_config_arguments(parser)
+    parser.add_argument(
+        "--zone",
+        help="Specify a federated iRODS zone in which to find "
+        "collections to update. This is not required if the target "
+        "collections are in the local zone.",
+        type=str,
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     dbconfig = IniData(db.Config).from_file(args.db_config, "mlwh_ro")
     engine = sqlalchemy.create_engine(
         dbconfig.url, pool_pre_ping=True, pool_recycle=3600
@@ -91,7 +98,7 @@ def main():
         )
 
         if num_errors:
-            log.error(
+            logger().error(
                 "Update failed",
                 num_processed=num_processed,
                 num_updated=num_updated,
@@ -102,7 +109,7 @@ def main():
         msg = (
             "All updates were successful" if num_updated else "No updates were required"
         )
-        log.info(
+        logger().info(
             msg,
             num_processed=num_processed,
             num_updated=num_updated,

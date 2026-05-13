@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2023, 2024 Genome Research Ltd. All rights reserved.
+# Copyright © 2023, 2024, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -47,53 +47,58 @@ If any of the paths could not have consent withdrawn, the exit code will be non-
 and an error message summarising the results will be sent to STDERR.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
-parser.add_argument(
-    "-i",
-    "--input",
-    help="Input filename.",
-    type=argparse.FileType("r", encoding="UTF-8"),
-    default=sys.stdin,
-)
-parser.add_argument(
-    "-o",
-    "--output",
-    help="Output filename.",
-    type=argparse.FileType("w", encoding="UTF-8"),
-    default=sys.stdout,
-)
-parser.add_argument(
-    "--print-pass",
-    help="Print to output those paths that pass the check.",
-    action="store_true",
-)
 
-parser.add_argument(
-    "--print-fail",
-    help="Print to output those paths that fail the check.",
-    action="store_true",
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
-
-
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+    parser.add_argument(
+        "-i",
+        "--input",
+        help="Input filename.",
+        type=argparse.FileType("r", encoding="UTF-8"),
+        default=sys.stdin,
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output filename.",
+        type=argparse.FileType("w", encoding="UTF-8"),
+        default=sys.stdout,
+    )
+    parser.add_argument(
+        "--print-pass",
+        help="Print to output those paths that pass the check.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--print-fail",
+        help="Print to output those paths that fail the check.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     num_processed, num_withdrawn, num_errors = withdraw_consent(
         args.input,
         args.output,
@@ -102,7 +107,7 @@ def main():
     )
 
     if num_errors:
-        log.error(
+        logger().error(
             "Some updates were not successful",
             num_processed=num_processed,
             num_withdrawn=num_withdrawn,
@@ -111,7 +116,7 @@ def main():
         sys.exit(1)
 
     msg = "All updates were successful" if num_withdrawn else "No updates were required"
-    log.info(
+    logger().info(
         msg,
         num_processed=num_processed,
         num_withdrawn=num_withdrawn,

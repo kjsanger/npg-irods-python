@@ -114,7 +114,9 @@ collection containing a data object, directly or as a root collection, the
 collection path is printed.
 """
 
-log = structlog.get_logger("main")
+
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def consent_withdrawn(cli_args: argparse.ArgumentParser):
@@ -130,11 +132,11 @@ def consent_withdrawn(cli_args: argparse.ArgumentParser):
     with Session(engine) as session:
         for i, s in enumerate(find_consent_withdrawn_samples(session)):
             num_processed += 1
-            log.info("Finding data objects", item=i, sample=s)
+            logger().info("Finding data objects", item=i, sample=s)
 
             if s.id_sample_lims is None:
                 num_errors += 1
-                log.error("Missing id_sample_lims", item=i, sample=s)
+                logger().error("Missing id_sample_lims", item=i, sample=s)
                 continue
 
             query = AVU(TrackedSample.ID, s.id_sample_lims)
@@ -153,9 +155,9 @@ def consent_withdrawn(cli_args: argparse.ArgumentParser):
                             _print(item, json=json)
             except Exception as e:
                 num_errors += 1
-                log.exception(e, item=i, sample=s)
+                logger().exception(e, item=i, sample=s)
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     if num_errors:
         sys.exit(1)
@@ -228,7 +230,7 @@ def illumina_updates(
     to_print = set()
 
     if skip_absent_runs is not None:
-        log.info("Skipping absent runs after n attempts", n=skip_absent_runs)
+        logger().info("Skipping absent runs after n attempts", n=skip_absent_runs)
 
     changed_sample_ids, changed_study_ids = _load_mlwh_change_ids(
         sess, since, until, cache_path, prime_cache=prime_cache
@@ -266,11 +268,11 @@ def illumina_updates(
         if skip_absent_runs is not None:
             if successes == 0 and attempts == skip_absent_runs:
                 msg = "Skipping run after unsuccessful attempts to find it"
-                log.info(msg, attempts=attempts, **log_kwargs)
+                logger().info(msg, attempts=attempts, **log_kwargs)
                 continue
 
         try:
-            log.info("Searching iRODS", **log_kwargs)
+            logger().info("Searching iRODS", **log_kwargs)
             result = query_metadata(*avus, collection=False, zone=zone)
             if not result:
                 attempts += 1
@@ -285,7 +287,7 @@ def illumina_updates(
                     for item in qc_coll.iter_contents(recurse=True):
                         to_print.add(item)
                 except CollectionNotFound as e:
-                    log.warning("QC collection missing", path=e.path)
+                    logger().warning("QC collection missing", path=e.path)
 
             if prev is not None and curr.id_run != prev.id_run:  # Reached next run
                 _print_batch(to_print, json=json)
@@ -294,10 +296,10 @@ def illumina_updates(
 
         except Exception as e:
             num_errors += 1
-            log.exception(e, item=num_processed, comp=curr)
+            logger().exception(e, item=num_processed, comp=curr)
 
     _print_batch(to_print, json=json)
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -367,7 +369,7 @@ def ont_updates(
             AVU(ont.Instrument.EXPERIMENT_NAME, c.experiment_name),
             AVU(ont.Instrument.INSTRUMENT_SLOT, c.instrument_slot),
         ]
-        log.info(
+        logger().info(
             "Searching iRODS",
             item=i,
             comp=c,
@@ -388,9 +390,9 @@ def ont_updates(
 
         except Exception as e:
             num_errors += 1
-            log.exception(e, item=i, comp=c)
+            logger().exception(e, item=i, comp=c)
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -417,7 +419,7 @@ def ont_run_collections_created(
 ) -> tuple[int, int]:
     num_processed = num_errors = 0
 
-    log.info(
+    logger().info(
         "Searching iRODS",
         since=since.strftime("%Y-%m-%dT%H:%M:%SZ"),
         until=until.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -430,9 +432,9 @@ def ont_run_collections_created(
             _print(coll, json=json)
         except Exception as e:
             num_errors += 1
-            log.exception(e, item=i, coll=coll)
+            logger().exception(e, item=i, coll=coll)
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -486,7 +488,7 @@ def pacbio_updates(
     to_print = set()
 
     if skip_absent_runs is not None:
-        log.info("Skipping absent runs after n attempts", n=skip_absent_runs)
+        logger().info("Skipping absent runs after n attempts", n=skip_absent_runs)
 
     changed_sample_ids, changed_study_ids = _load_mlwh_change_ids(
         sess, since, until, cache_path, prime_cache=prime_cache
@@ -523,11 +525,11 @@ def pacbio_updates(
         if skip_absent_runs is not None:
             if successes == 0 and attempts == skip_absent_runs:
                 msg = "Skipping run after unsuccessful attempts to find it"
-                log.info(msg, attempts=attempts, **log_kwargs)
+                logger().info(msg, attempts=attempts, **log_kwargs)
                 continue
 
         try:
-            log.info("Searching iRODS", **log_kwargs)
+            logger().info("Searching iRODS", **log_kwargs)
             result = query_metadata(*avus, data_object=True, zone=zone)
             if not result:
                 attempts += 1
@@ -545,12 +547,12 @@ def pacbio_updates(
 
         except Exception as e:
             num_errors += 1
-            log.exception(e, item=num_processed, comp=curr)
+            logger().exception(e, item=num_processed, comp=curr)
 
     for obj in sorted(to_print):
         _print(obj, json=json)
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -589,7 +591,7 @@ def infinium_microarray_updates(
         sess, query, since=since, until=until, json=json, zone=zone
     )
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -621,7 +623,7 @@ def sequenom_genotype_updates(
         sess, query, since=since, until=until, zone=zone
     )
 
-    log.info(f"Processed {num_processed} with {num_errors} errors")
+    logger().info(f"Processed {num_processed} with {num_errors} errors")
 
     return num_processed, num_errors
 
@@ -650,7 +652,7 @@ def _load_mlwh_change_ids(
 ) -> tuple[set[str] | None, set[str] | None]:
     if cache_path is None:
         if prime_cache:
-            log.warning("MLWH cache priming requested without cache path")
+            logger().warning("MLWH cache priming requested without cache path")
 
         return None, None
 
@@ -658,7 +660,7 @@ def _load_mlwh_change_ids(
         sample_ids = cache.changed_sample_ids(sess, since, until)
         study_ids = cache.changed_study_ids(sess, since, until)
 
-    log.info(
+    logger().info(
         "Filtering MLWH updates using cache",
         cache=cache_path.as_posix(),
         samples=len(sample_ids),
@@ -724,7 +726,7 @@ def _find_and_print_data_objects(
         avu = AVU(attr, value)
 
         num_processed += 1
-        log.info(
+        logger().info(
             "Searching iRODS",
             item=i,
             query=[avu, *query],
@@ -739,7 +741,7 @@ def _find_and_print_data_objects(
                 _print(obj, json=json)
         except Exception as e:
             num_errors += 1
-            log.exception(e, item=i, attr=attr, value=value)
+            logger().exception(e, item=i, attr=attr, value=value)
 
     return num_processed, num_errors
 

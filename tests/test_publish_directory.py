@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2025 Genome Research Ltd. All rights reserved.
+# Copyright © 2025, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import json
 from pathlib import PurePath
 from unittest.mock import MagicMock, patch
@@ -41,7 +42,7 @@ class TestPublishDirectory:
         mock_publish_directory.return_value = (2, 1, 0)
 
         # Act
-        with caplog.at_level("DEBUG", "main"):
+        with caplog.at_level("DEBUG"):
             self._main(["directory", "/collection"])
 
         # Assert

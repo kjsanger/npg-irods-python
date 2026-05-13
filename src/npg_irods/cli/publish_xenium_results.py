@@ -42,44 +42,50 @@ run name, and other relevant details from the Xenium experiment.
 This script is not responsible for adding LIMS-related tracking metadata.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-parser = add_logging_arguments(parser)
-parser = add_io_arguments(parser)
 
-parser.add_argument(
-    "collection",
-    help="The iRODS collection to publish the local directory to.",
-    type=str,
-)
-parser.add_argument(
-    "--print-success",
-    help="Print to output those paths that were successfully processed.",
-    action="store_true",
-)
-parser.add_argument(
-    "--print-fail",
-    help="Print to output those paths that were not successfully processed.",
-    action="store_true",
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
-
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser = add_logging_arguments(parser)
+    parser = add_io_arguments(parser)
+
+    parser.add_argument(
+        "collection",
+        help="The iRODS collection to publish the local directory to.",
+        type=str,
+    )
+    parser.add_argument(
+        "--print-success",
+        help="Print to output those paths that were successfully processed.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--print-fail",
+        help="Print to output those paths that were not successfully processed.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     input_path = sanitise_path(args.input)
     output_path = sanitise_path(args.output)
 
@@ -95,7 +101,7 @@ def main():
             )
 
             if num_failed:
-                log.error(
+                logger().error(
                     "Some result directories could not be published cleanly",
                     num_dirs=num_dirs,
                     num_published=num_published,
@@ -103,7 +109,7 @@ def main():
                 )
                 sys.exit(1)
 
-            log.info(
+            logger().info(
                 "All result directories published",
                 num_dirs=num_dirs,
                 num_published=num_published,

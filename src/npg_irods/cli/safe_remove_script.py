@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2022, 2023, 2024 Genome Research Ltd. All rights reserved.
+# Copyright © 2022, 2023, 2024, 2026 Genome Research Ltd. All rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,49 +46,55 @@ the removal commands, but the script must still be used according to Standard Op
 Procedures e.g. be manually reviewed before use.
 """
 
-parser = argparse.ArgumentParser(
-    description=description, formatter_class=argparse.RawDescriptionHelpFormatter
-)
-add_logging_arguments(parser)
-parser.add_argument(
-    "target",
-    help="Target collection or data object path to remove, recursively if a "
-    "collection. Must be an absolute path.",
-)
-parser.add_argument(
-    "-o",
-    "--output",
-    help="Output filename.",
-    type=argparse.FileType("w", encoding="UTF-8"),
-    default=sys.stdout,
-)
-parser.add_argument(
-    "--echo-commands",
-    help="Create a script that echos each command executed.",
-    action="store_true",
-)
-parser.add_argument(
-    "--stop-on-error",
-    help="Create a script that will stop on the first error encountered.",
-    action="store_true",
-)
-parser.add_argument(
-    "--version", help="Print the version and exit.", action="version", version=version()
-)
 
-args = parser.parse_args()
-configure_structlog(
-    config_file=args.log_config,
-    debug=args.debug,
-    verbose=args.verbose,
-    colour=args.colour,
-    json=args.log_json,
-)
-add_appinfo_structlog_processor()
-log = structlog.get_logger("main")
+def logger():
+    return structlog.get_logger(__name__)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    add_logging_arguments(parser)
+    parser.add_argument(
+        "target",
+        help="Target collection or data object path to remove, recursively if a "
+        "collection. Must be an absolute path.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output filename.",
+        type=argparse.FileType("w", encoding="UTF-8"),
+        default=sys.stdout,
+    )
+    parser.add_argument(
+        "--echo-commands",
+        help="Create a script that echos each command executed.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--stop-on-error",
+        help="Create a script that will stop on the first error encountered.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--version",
+        help="Print the version and exit.",
+        action="version",
+        version=version(),
+    )
+
+    args = parser.parse_args()
+    configure_structlog(
+        config_file=args.log_config,
+        debug=args.debug,
+        verbose=args.verbose,
+        colour=args.colour,
+        json=args.log_json,
+    )
+    add_appinfo_structlog_processor()
+
     try:
         write_safe_remove_script(
             args.output,
@@ -98,5 +104,5 @@ def main():
         )
 
     except Exception as e:
-        log.error(e)
+        logger().error(e)
         sys.exit(1)
