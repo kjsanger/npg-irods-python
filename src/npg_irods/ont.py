@@ -28,6 +28,7 @@ from os import PathLike
 from pathlib import PurePath
 from typing import Any, Generator, Iterable, Optional, Type
 
+from npgmlwarehouse.db.schema import OseqFlowcell, Sample, Study
 from partisan.exception import RodsError
 from partisan.icommands import iquest
 from partisan.irods import AVU, Collection, DataObject, query_metadata
@@ -36,7 +37,7 @@ from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from npg_irods.common import infer_zone, update_metadata, update_permissions
-from npg_irods.db.mlwh import OseqFlowcell, SQL_CHUNK_SIZE, Sample, Study
+from npg_irods.db.mlwh import SQL_CHUNK_SIZE
 from npg_irods.metadata.common import SeqConcept
 from npg_irods.metadata.lims import (
     ensure_consent_withdrawn,
