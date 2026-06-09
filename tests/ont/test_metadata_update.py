@@ -796,81 +796,65 @@ class TestONTPermissionsUpdate:
 
 
 class TestBarcodeRelatedFunctions(object):
-    @m.context("When rebasecalled ONT runs are plexed")
-    @m.context("When barcode folders lie one level down in the output folder")
-    @m.it("Barcode collections number is correct")
-    def test_barcode_collections_under_subfolder(self):
-        num_expected_bcolls = 5
-        root_path = PurePath(
-            "/testZone/home/irods/test/ont_synthetic_irods/synthetic/barcode_collection_test"
-        )
+    @m.context(
+        "When rebasecalled ONT runs are plexed and barcodes lie arbitrary levels "
+        "down in the output folder"
+    )
+    @m.it("Finds the correct number of barcode collections")
+    @m.parametrize("sub_path", ["", "pass", "x/pass", "x/y/pass"])
+    def test_barcode_collections_under_deep_folder(
+        self, sub_path, empty_collection_path
+    ):
         expt = "multiplexed_folder_experiment_001"
-        path = root_path / expt / "20190904_1514_GA10000_flowcell401_ba641ab1"
-        tag_identifiers = [
-            ont_tag_identifier(tag_index)
-            for tag_index in range(1, num_expected_bcolls + 1)
-        ]
-        for tag_identifier in tag_identifiers:
-            bpath = path / "pass" / ont.barcode_name_from_id(tag_identifier)
-            Collection(bpath).create(parents=True)
+        path = (
+            empty_collection_path / expt / "20190904_1514_GA10000_flowcell401_ba641ab1"
+        )
 
-        bcolls = barcode_collections(Collection(path), *tag_identifiers)
-        assert len(bcolls) == num_expected_bcolls
-        remove_rods_path(root_path)
-
-    @m.context("When rebasecalled ONT runs are plexed")
-    @m.context("When barcodes are right under the output folder")
-    @m.it("Barcode collections number is correct")
-    def test_barcode_collections_under_output_folder(self):
         num_expected_bcolls = 5
-        root_path = PurePath(
-            "/testZone/home/irods/test/ont_synthetic_irods/synthetic/barcode_collection_test"
-        )
-        expt = "multiplexed_folder_experiment_002"
-        path = root_path / expt / "20190904_1514_GA10000_flowcell402_ca641bc1"
         tag_identifiers = [
             ont_tag_identifier(tag_index)
             for tag_index in range(1, num_expected_bcolls + 1)
         ]
         for tag_identifier in tag_identifiers:
-            bpath = path / ont.barcode_name_from_id(tag_identifier)
+            bpath = path / sub_path / ont.barcode_name_from_id(tag_identifier)
             Collection(bpath).create(parents=True)
 
         bcolls = barcode_collections(Collection(path), *tag_identifiers)
         assert len(bcolls) == num_expected_bcolls
-        remove_rods_path(root_path)
 
-    @m.context("When rebasecalled ONT runs are plexed")
-    @m.context("When the barcode folder is duplicated under a barcode collection")
-    @m.it("Raises exception for duplicated barcode folders")
-    def test_barcode_collections_duplicates(self):
-        root_path = PurePath(
-            "/testZone/home/irods/test/ont_synthetic_irods/synthetic/barcode_collection_test"
-        )
+    @m.context(
+        "When rebasecalled ONT runs are plexed and the barcode folder is duplicated "
+        "under a barcode collection"
+    )
+    @m.it("Raises an exception for duplicated barcode folders")
+    def test_barcode_collections_duplicates(self, empty_collection_path):
         expt = "multiplexed_folder_experiment_003"
-        path = root_path / expt / "20190904_1514_GA10000_flowcell403_de531cf1"
+        path = (
+            empty_collection_path / expt / "20190904_1514_GA10000_flowcell403_de531cf1"
+        )
+
         tag_identifiers = [ont_tag_identifier(tag_index) for tag_index in range(1, 6)]
         for tag_identifier in tag_identifiers:
             barcode_name = ont.barcode_name_from_id(tag_identifier)
             bpath = path / barcode_name / barcode_name
             Collection(bpath).create(parents=True)
+
         with raises(ValueError):
             barcode_collections(Collection(path), *tag_identifiers)
-        remove_rods_path(root_path)
 
-    @m.context("When rebasecalled ONT runs are plexed")
     @m.context(
-        "When some barcode folders are missing although they were used in the lab"
+        "When rebasecalled ONT runs are plexed and some barcode folders are missing "
+        "although they were used in the lab"
     )
-    @m.it("Workflow continues with no error")
-    def test_barcode_collections_missing_folders(self):
+    @m.it("Continues with no error")
+    def test_barcode_collections_missing_folders(self, empty_collection_path):
+        expt = "multiplexed_folder_experiment_004"
+        path = (
+            empty_collection_path / expt / "20190904_1514_GA10000_flowcell404_fg345hil"
+        )
+
         num_expected_bcolls = 3
         num_total_tags = 5
-        root_path = PurePath(
-            "/testZone/home/irods/test/ont_synthetic_irods/synthetic/barcode_collection_test"
-        )
-        expt = "multiplexed_folder_experiment_004"
-        path = root_path / expt / "20190904_1514_GA10000_flowcell404_fg345hil"
         expected_tag_identifiers = [
             ont_tag_identifier(tag_index) for tag_index in range(1, num_total_tags + 1)
         ]
@@ -883,4 +867,3 @@ class TestBarcodeRelatedFunctions(object):
 
         bcolls = barcode_collections(Collection(path), *expected_tag_identifiers)
         assert len(bcolls) == num_expected_bcolls
-        remove_rods_path(root_path)
