@@ -101,19 +101,19 @@ def publish_result_dirs(
     """
     num_dirs, num_published, number_failed = 0, 0, 0
 
-    for path in reader:
+    for i, path in enumerate(reader):
         p = Path(sanitise_path(path)).resolve()
 
         num_dirs += 1
         try:
-            publish_result_dir(p, remote_root)
+            publish_result_dir(p, i, remote_root)
 
             num_published += 1
 
             if print_success:
                 print(p, file=writer)
         except Exception as e:
-            log.error(f"Failed to publish '{p}': {e}")
+            log.error(f"Failed to publish '{p}': {e}", i=i)
 
             number_failed += 1
 
@@ -124,12 +124,16 @@ def publish_result_dirs(
 
 
 def publish_result_dir(
-    result_dir: Path, remote_root: PurePath, tries: int = 3
+    result_dir: Path,
+    result_dir_index: int,
+    remote_root: PurePath,
+    tries: int = 3,
 ) -> Collection:
     """Publish one Xenium results directory to iRODS.
 
     Args:
         result_dir: Path to the Xenium result directory.
+        result_dir_index: Index of directory to publish (for logging).
         remote_root: iRODS path to the root of the Xenium results collection. This
             collection must exist.
         tries: Number of times to retry publishing if it fails.
@@ -147,6 +151,7 @@ def publish_result_dir(
 
     log.info(
         "Publishing Xenium result",
+        i=result_dir_index,
         src=src.as_posix(),
         dest=dest.as_posix(),
         metadata=avus,
@@ -181,6 +186,7 @@ def publish_result_dir(
 
     log.info(
         "Publishing complete",
+        i=result_dir_index,
         src=src.as_posix(),
         dest=dest.as_posix(),
         num_processed=num_processed,
