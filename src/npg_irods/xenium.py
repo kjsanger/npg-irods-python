@@ -20,7 +20,7 @@ import json
 from pathlib import Path, PurePath
 
 from partisan.irods import AVU, Collection
-from structlog import get_logger
+from structlog.stdlib import get_logger
 
 from npg_irods.common import PlatformNamespace
 from npg_irods.exception import PublishingError
