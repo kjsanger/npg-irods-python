@@ -253,6 +253,10 @@ def get_xenium_output_directories(
         num_dirs += 1
         log.debug("Considering dirpath", dirpath=dirpath)
 
+        # Path.walk is not deterministic
+        dirnames.sort()
+        filenames.sort()
+
         if EXPERIMENT_FILENAME in filenames:
             num_experiments += 1
             print(dirpath, file=writer)

@@ -46,8 +46,8 @@ class TestGetXeniumOutputDirectoriesScript:
         # Assert
         stdout_lines = [line for line in capsys.readouterr().out.split("\n") if line]
         expected = [
-            root + "/sub/level_2",
             root + "/level_1",
+            root + "/sub/level_2",
         ]
         assert stdout_lines == expected
 
@@ -77,8 +77,8 @@ class TestGetXeniumOutputDirectoriesScript:
 
         stdout_lines = [line for line in capsys.readouterr().out.split("\n") if line]
         expected = [
-            root + "/sub/level_2",
             root + "/level_1",
+            root + "/sub/level_2",
         ]
         assert stdout_lines == expected
 
